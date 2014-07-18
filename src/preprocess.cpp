@@ -17,6 +17,9 @@
 #include <asn.h>
 #include <queue.h>
 #include <files.h>
+#include <hmac.h>
+#include <sha.h>
+#include <hex.h>
 
 #include "common.h"
 #include "prettyprint/prettyprint.hpp"
@@ -50,38 +53,7 @@ void printUsage(std::ostream &os) {
 	os << std::endl;
 }
 
-void SavePrivateKey(const std::string& filename, const CryptoPP::PrivateKey& key)
-{
-    CryptoPP::ByteQueue queue;
-    key.Save(queue);
 
-    CryptoPP::FileSink file(filename.c_str());
-    queue.CopyTo(file);
-    file.MessageEnd();
-}
-
-void Load(const std::string& filename, CryptoPP::BufferedTransformation& bt)
-{
-	CryptoPP::FileSource file(filename.c_str(), true /*pumpAll*/);
-
-    file.TransferTo(bt);
-    bt.MessageEnd();
-}
-
-void LoadPublicKey(const std::string& filename, CryptoPP::PublicKey& key)
-{
-	CryptoPP::ByteQueue queue;
-    Load(filename, queue);
-
-    key.Load(queue);
-}
-void LoadPrivateKey(const std::string& filename, CryptoPP::PrivateKey& key)
-{
-	CryptoPP::ByteQueue queue;
-    Load(filename, queue);
-
-    key.Load(queue);
-}
 
 
 
@@ -103,19 +75,47 @@ int main(int argc, char **argv) {
 	std::cout << filePath << std::endl;
 	std::cout << fileName << std::endl;
 
-	CryptoPP::AutoSeededRandomPool rnd;
+	unsigned char hashOfKey[CryptoPP::SHA512::DIGESTSIZE];
+	char key[] = "something secret";
 
-	CryptoPP::RSA::PrivateKey key1, key2;
-	key1.GenerateRandomWithKeySize(rnd, 3072);
+	CryptoPP::SHA512 sha;
+	sha.CalculateDigest(hashOfKey, (unsigned char*)key, strlen(key));
 
-	SavePrivateKey("rsa-roundtrip.key", key1);
-	LoadPrivateKey("rsa-roundtrip.key", key2);
+	char hexHash[2 * sizeof(hashOfKey) + 1];
+	CryptoPP::HexEncoder hexEncoder;
+	hexEncoder.Put(hashOfKey, sizeof(hashOfKey));
+	hexEncoder.MessageEnd();
+	hexEncoder.Get((unsigned char*)hexHash, 2 * sizeof(hashOfKey));
+	hexHash[2 * sizeof(hashOfKey)] = 0;
 
-	if(key1.GetModulus() != key2.GetModulus() ||
-	   key1.GetPublicExponent() != key2.GetPublicExponent() ||
-	   key1.GetPrivateExponent() != key2.GetPrivateExponent())
-	{
-	    std::cout << "key data did not round trip";
-	}
+	std::cout << hexHash << std::endl;
 
+	unsigned char fn1[] = "name of my file.txt";
+
+	byte fk1[64], fk2[64];
+	buildSymmetricKey(fk1, 64, hashOfKey, 64, fn1, strlen((char*)fn1));
+
+	byte hexFK[2 * 64 + 1];
+	CryptoPP::HexEncoder hexEncoder2;
+	hexEncoder2.Put(fk1, 64);
+	hexEncoder2.MessageEnd();
+	hexEncoder2.Get(hexFK, 2 * 64);
+	hexFK[2 * 512] = 0;
+
+	printf("%s\n", hexFK);
+
+
+
+	CryptoPP::HMAC<CryptoPP::SHA512> hmac(hashOfKey, sizeof(hashOfKey));
+
+	hmac.CalculateDigest(fk2, fn1, strlen((char*)fn1));
+
+	char hexFK2[2 * sizeof(fk2) + 1];
+	CryptoPP::HexEncoder hexEncoder3;
+	hexEncoder3.Put(fk2, sizeof(fk2));
+	hexEncoder3.MessageEnd();
+	hexEncoder3.Get((unsigned char*)hexFK2, 2 * sizeof(fk2));
+	hexFK2[2 * sizeof(fk2)] = 0;
+
+	printf("%s\n", hexFK2);
 }

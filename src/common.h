@@ -4,6 +4,13 @@
 #include <string>
 #include <iostream>
 
+#include <sha.h>
+#include <hmac.h>
+
+typedef unsigned char byte;
+
+#define KEY_LENGTH_BYTES (CryptoPP::HMAC<CryptoPP::SHA512>::DIGESTSIZE / 8)
+
 std::string key, filePath, fileName;
 
 /**
@@ -37,21 +44,21 @@ std::string readFileIntoString(std::string filePath) {
 
 	std::ifstream file(filePath, std::ifstream::binary);
 
-    if (file) {
-        // get length of file:
-        file.seekg(0, file.end);
-        int length = file.tellg();
-        file.seekg(0, file.beg);
+	if (file) {
+		// get length of file:
+		file.seekg(0, file.end);
+		int length = file.tellg();
+		file.seekg(0, file.beg);
 
-        std::string str;
-        str.resize(length, ' '); // reserve space
-        char* begin = &*str.begin();
+		std::string str;
+		str.resize(length, ' '); // reserve space
+		char* begin = &*str.begin();
 
-        file.read(begin, length);
-        file.close();
-    }
+		file.read(begin, length);
+		file.close();
+	}
 
-    return str;
+	return str;
 }
 
 /**
@@ -119,7 +126,8 @@ std::string processFile(std::string candidate) {
  * @param printUsage - function to print usage for the command calling the arg
  * processor
  */
-void processArguments(int argc, char** argv, void(*printUsage)(std::ostream&)) {
+void processArguments(int argc, char** argv,
+		void (*printUsage)(std::ostream&)) {
 	char c;
 
 	while ((c = getopt(argc, argv, "hk:f:n:")) != -1)
@@ -146,6 +154,86 @@ void processArguments(int argc, char** argv, void(*printUsage)(std::ostream&)) {
 			printUsage(std::cout);
 			abort();
 		}
+}
+
+/**
+ * Calculate the HMAC of a buffer of data using HMAC<SHA512>. Result is
+ * allocated on heap. Caller responsible for freeing.
+ * @param keyData - unsigned char array of 512 (or more) bytes of data to serve
+ * as the key for HMAC.
+ * @param keySize - unsigned int size of key data
+ * @param messageData - unsigned char array of data requiring HMAC.
+ * @return unsigned char array of HMAC or NULL if error. Caller responsible for
+ * freeing buffer when done.
+ */
+bool buildSymmetricKey(byte *symmetricKey, unsigned int symKeyLength,
+		const byte *signingKey, const unsigned int signKeyLength,
+		const byte *messageData, unsigned long msgDataLength) {
+
+	if (symKeyLength < KEY_LENGTH_BYTES)
+		return false;
+
+	CryptoPP::HMAC<CryptoPP::SHA512> hmac(signingKey, signKeyLength);
+	hmac.CalculateDigest(symmetricKey, messageData, msgDataLength);
+
+	return hmac.Verify(symmetricKey);
+}
+
+/**
+ * Calculate the HMAC of a buffer of data using HMAC<SHA512> using SHA512 of
+ * passphrase as key.
+ *
+ * Result is allocated on heap. Caller responsible for freeing.
+ * @param passphrase - std::string of passphrase. Uses SHA512 hash of passphrase
+ * as HMAC key.
+ * @param messageData - unsigned char array of data requiring HMAC.
+ * @return unsigned char array of HMAC or NULL if error. Caller responsible for
+ * freeing buffer when done.
+ */
+bool buildSymmetricKey(byte *passphrase, unsigned int phraseLength, const byte *messageData) {
+
+	unsigned char hashOfPhrase[KEY_LENGTH_BYTES];
+
+	CryptoPP::SHA512 sha;
+	sha.CalculateDigest(hashOfPhrase, passphrase, phraseLength);
+
+	if (sha.Verify(hashOfPhrase))
+		return generateHmac(hashOfPhrase, sizeof(hashOfPhrase), messageData);
+	else
+		return false;
+}
+
+void SaveSymmetricKey(const std::string& filename, const CryptoPP::PrivateKey& key)
+{
+    CryptoPP::ByteQueue queue;
+    key.Save(queue);
+
+    CryptoPP::FileSink file(filename.c_str());
+    queue.CopyTo(file);
+    file.MessageEnd();
+}
+
+void LoadSymmetricKey(const char &filename, CryptoPP::BufferedTransformation& bt)
+{
+	CryptoPP::FileSource file(filename, true /*pumpAll*/);
+
+    file.TransferTo(bt);
+    bt.MessageEnd();
+}
+
+void LoadPublicKey(const std::string& filename, CryptoPP::PublicKey& key)
+{
+	CryptoPP::ByteQueue queue;
+    Load(filename, queue);
+
+    key.Load(queue);
+}
+void LoadPrivateKey(const std::string& filename, CryptoPP::PrivateKey& key)
+{
+	CryptoPP::ByteQueue queue;
+    Load(filename, queue);
+
+    key.Load(queue);
 }
 
 #endif /* COMMON_H_ */
