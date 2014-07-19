@@ -12,17 +12,23 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <rsa.h>
-#include <osrng.h>
-#include <asn.h>
-#include <queue.h>
-#include <files.h>
-#include <hmac.h>
-#include <sha.h>
-#include <hex.h>
+#include <cryptopp/rsa.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/queue.h>
+#include <cryptopp/files.h>
+#include <cryptopp/hmac.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/hex.h>
+
+#include <boost/filesystem/path.hpp>
+
+#include "CloudEncryptor.h"
+
 
 #include "common.h"
 #include "prettyprint/prettyprint.hpp"
+
 
 
 
@@ -75,47 +81,54 @@ int main(int argc, char **argv) {
 	std::cout << filePath << std::endl;
 	std::cout << fileName << std::endl;
 
-	unsigned char hashOfKey[CryptoPP::SHA512::DIGESTSIZE];
-	char key[] = "something secret";
+//	unsigned char hashOfKey[CryptoPP::SHA512::DIGESTSIZE];
+//	char key[] = "something secret";
+//
+//	CryptoPP::SHA512 sha;
+//	sha.CalculateDigest(hashOfKey, (unsigned char*)key, strlen(key));
+//
+//	char hexHash[2 * sizeof(hashOfKey) + 1];
+//	CryptoPP::HexEncoder hexEncoder;
+//	hexEncoder.Put(hashOfKey, sizeof(hashOfKey));
+//	hexEncoder.MessageEnd();
+//	hexEncoder.Get((unsigned char*)hexHash, 2 * sizeof(hashOfKey));
+//	hexHash[2 * sizeof(hashOfKey)] = 0;
+//
+//	std::cout << hexHash << std::endl;
+//
+//	unsigned char fn1[] = "name of my file.txt";
+//
+//	byte fk1[64], fk2[64];
+//	buildSymmetricKey(fk1, 64, hashOfKey, 64, fn1, strlen((char*)fn1));
+//
+//	byte hexFK[2 * 64 + 1];
+//	CryptoPP::HexEncoder hexEncoder2;
+//	hexEncoder2.Put(fk1, 64);
+//	hexEncoder2.MessageEnd();
+//	hexEncoder2.Get(hexFK, 2 * 64);
+//	hexFK[2 * 512] = 0;
+//
+//	printf("%s\n", hexFK);
+//
+//
+//
+//	CryptoPP::HMAC<CryptoPP::SHA512> hmac(hashOfKey, sizeof(hashOfKey));
+//
+//	hmac.CalculateDigest(fk2, fn1, strlen((char*)fn1));
+//
+//	char hexFK2[2 * sizeof(fk2) + 1];
+//	CryptoPP::HexEncoder hexEncoder3;
+//	hexEncoder3.Put(fk2, sizeof(fk2));
+//	hexEncoder3.MessageEnd();
+//	hexEncoder3.Get((unsigned char*)hexFK2, 2 * sizeof(fk2));
+//	hexFK2[2 * sizeof(fk2)] = 0;
+//
+//	printf("%s\n", hexFK2);
+//
 
-	CryptoPP::SHA512 sha;
-	sha.CalculateDigest(hashOfKey, (unsigned char*)key, strlen(key));
+	std::string s1 = CloudEncryptor<CryptoPP::SHA512>::GenerateObfuscatedName("something else.txt");
 
-	char hexHash[2 * sizeof(hashOfKey) + 1];
-	CryptoPP::HexEncoder hexEncoder;
-	hexEncoder.Put(hashOfKey, sizeof(hashOfKey));
-	hexEncoder.MessageEnd();
-	hexEncoder.Get((unsigned char*)hexHash, 2 * sizeof(hashOfKey));
-	hexHash[2 * sizeof(hashOfKey)] = 0;
-
-	std::cout << hexHash << std::endl;
-
-	unsigned char fn1[] = "name of my file.txt";
-
-	byte fk1[64], fk2[64];
-	buildSymmetricKey(fk1, 64, hashOfKey, 64, fn1, strlen((char*)fn1));
-
-	byte hexFK[2 * 64 + 1];
-	CryptoPP::HexEncoder hexEncoder2;
-	hexEncoder2.Put(fk1, 64);
-	hexEncoder2.MessageEnd();
-	hexEncoder2.Get(hexFK, 2 * 64);
-	hexFK[2 * 512] = 0;
-
-	printf("%s\n", hexFK);
+	std::cout << s1 << std::endl;
 
 
-
-	CryptoPP::HMAC<CryptoPP::SHA512> hmac(hashOfKey, sizeof(hashOfKey));
-
-	hmac.CalculateDigest(fk2, fn1, strlen((char*)fn1));
-
-	char hexFK2[2 * sizeof(fk2) + 1];
-	CryptoPP::HexEncoder hexEncoder3;
-	hexEncoder3.Put(fk2, sizeof(fk2));
-	hexEncoder3.MessageEnd();
-	hexEncoder3.Get((unsigned char*)hexFK2, 2 * sizeof(fk2));
-	hexFK2[2 * sizeof(fk2)] = 0;
-
-	printf("%s\n", hexFK2);
 }

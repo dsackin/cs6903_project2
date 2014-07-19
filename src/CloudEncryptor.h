@@ -3,35 +3,41 @@
 
 #include <string>
 
-#include <sha.h>
-#include <hex.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/hex.h>
 
 typedef unsigned char byte;
 
-template <class T> class CloudEncryptor {
+template<class T> class CloudEncryptor {
 public:
 
-	static const unsigned int KEYSIZE = CryptoPP::SHA512::DIGESTSIZE / 8;
+	static const unsigned int KEYSIZE = T::DIGESTSIZE;
 
-	CloudEncryptor() {}
-	~CloudEncryptor() {}
+	CloudEncryptor() {
+	}
+	~CloudEncryptor() {
+	}
 
-	bool GenerateKey(const byte *masterKey, unsigned int masterKeyLength, const std::string plainFileName) {
+	bool GenerateKey(const byte *masterKey, unsigned int masterKeyLength,
+			const std::string plainFileName) {
 
-		CryptoPP::HMAC<CryptoPP::SHA512> hmac(masterKey, KEYSIZE);
-		hmac.CalculateDigest(symmetricKey, (byte*)plainFileName.c_str(), plainFileName.size());
+		CryptoPP::HMAC<T> hmac(masterKey, KEYSIZE);
+		hmac.CalculateDigest(symmetricKey, (byte*) plainFileName.c_str(),
+				plainFileName.size());
+
+		isInitialized = true;
 
 		return hmac.Verify(symmetricKey);
 
-
-		isInitialized = true;
 	}
 
-	bool GenerateKey(const std::string passphrase, const std::string plainFileName) {
+	bool GenerateKey(const std::string passphrase,
+			const std::string plainFileName) {
 		byte phraseHash[KEYSIZE];
 
-		CryptoPP::SHA512 hash;
-		hash.CalculateDigest(phraseHash, (byte*)passphrase.c_str(), passphrase.size());
+		T hash;
+		hash.CalculateDigest(phraseHash, (byte*) passphrase.c_str(),
+				passphrase.size());
 
 		if (hash.Verify(phraseHash))
 			return GenerateKey(phraseHash, KEYSIZE, plainFileName);
@@ -56,47 +62,24 @@ public:
 
 	}
 
-	static void EncryptFile(const byte *masterKey, std::string plainFilePath, std::string outputPath) {
+	static void EncryptFile(const byte *masterKey, std::string plainFilePath,
+			std::string outputPath) {
 
 	}
 
-	static void DecryptFile(std::string keyFilePath, std::string cipherFilePath, std::string outputPath) {
+	static void DecryptFile(std::string keyFilePath, std::string cipherFilePath,
+			std::string outputPath) {
 
 	}
 
-	static void ExportKey(const byte *masterKey, std::string plainFilePath, std::string outputPath) {
+	static void ExportKey(const byte *masterKey, std::string plainFilePath,
+			std::string outputPath) {
 
 	}
 
-private:
-	bool isInitialized = false;
-	byte symmetricKey[KEYSIZE];
 
-
-
-
-
-	std::string ExtractPlainName(const byte *data) {
-
-	}
-
-	static std::string GenerateObfuscatedName(const std::string plainFileName) {
-		byte nameHash[KEYSIZE];
-
-		CryptoPP::SHA512 hash;
-		hash.CalculateDigest(nameHash, (byte*)plainFileName.c_str(), plainFileName.size());
-
-		if (!hash.Verify(nameHash))
-			return "";
-
-
-		std::string cipherFileName =
-
-
-
-	}
-
-	static std::string BytesToHexString(const byte* data, const unsigned int dataLength) {
+	static std::string BytesToHexString(const byte* data,
+			const unsigned int dataLength) {
 		byte str[2 * dataLength + 1];
 		CryptoPP::HexEncoder encoder;
 		encoder.Put(data, dataLength);
@@ -104,17 +87,18 @@ private:
 		encoder.Get(str, 2 * dataLength);
 		str[2 * dataLength] = 0;
 
-		return std::string(str);
+		return std::string((char*)str);
 
 	}
 
-	static bool HexStringToBytes(std::string str, byte* data, const unsigned int dataLength) {
+	static bool HexStringToBytes(std::string str, byte* data,
+			const unsigned int dataLength) {
 
 		if (dataLength < str.size() / 2)
 			return false;
 
 		CryptoPP::HexDecoder decoder;
-		decoder.Put((byte*)str.c_str(), str.size());
+		decoder.Put((byte*) str.c_str(), str.size());
 		decoder.MessageEnd();
 		decoder.Get(*data);
 
@@ -122,12 +106,37 @@ private:
 
 	}
 
+private:
+	bool isInitialized = false;
+	byte symmetricKey[KEYSIZE];
 
+	std::string ExtractPlainName(const byte *data) {
+		return std::string();
+	}
+
+	static std::string GenerateObfuscatedBaseName(const std::string plainFileName) {
+		byte nameHash[KEYSIZE];
+
+		T hash;
+		hash.CalculateDigest(nameHash, (byte*) plainFileName.c_str(),
+				plainFileName.size());
+
+		std::string nameHashString = BytesToHexString(nameHash, KEYSIZE);
+
+		std::cout << nameHashString << std::endl;
+
+		std::string cipherFileName = nameHashString.substr(0, 4) + "-"
+				+ nameHashString.substr(4, 4) + "-"
+				+ nameHashString.substr(nameHashString.size() - 8, 4) + "-"
+				+ nameHashString.substr(nameHashString.size() - 4, 4);
+
+		std::cout << cipherFileName << std::endl;
+
+		return cipherFileName;
+	}
 
 
 
 };
-
-
 
 #endif // CLOUDENCRYPTOR_H_

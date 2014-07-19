@@ -4,8 +4,8 @@
 #include <string>
 #include <iostream>
 
-#include <sha.h>
-#include <hmac.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/hmac.h>
 
 typedef unsigned char byte;
 
@@ -166,18 +166,18 @@ void processArguments(int argc, char** argv,
  * @return unsigned char array of HMAC or NULL if error. Caller responsible for
  * freeing buffer when done.
  */
-bool buildSymmetricKey(byte *symmetricKey, unsigned int symKeyLength,
-		const byte *signingKey, const unsigned int signKeyLength,
-		const byte *messageData, unsigned long msgDataLength) {
-
-	if (symKeyLength < KEY_LENGTH_BYTES)
-		return false;
-
-	CryptoPP::HMAC<CryptoPP::SHA512> hmac(signingKey, signKeyLength);
-	hmac.CalculateDigest(symmetricKey, messageData, msgDataLength);
-
-	return hmac.Verify(symmetricKey);
-}
+//bool buildSymmetricKey(byte *symmetricKey, unsigned int symKeyLength,
+//		const byte *signingKey, const unsigned int signKeyLength,
+//		const byte *messageData, unsigned long msgDataLength) {
+//
+//	if (symKeyLength < KEY_LENGTH_BYTES)
+//		return false;
+//
+//	CryptoPP::HMAC<CryptoPP::SHA512> hmac(signingKey, signKeyLength);
+//	hmac.CalculateDigest(symmetricKey, messageData, msgDataLength);
+//
+//	return hmac.Verify(symmetricKey);
+//}
 
 /**
  * Calculate the HMAC of a buffer of data using HMAC<SHA512> using SHA512 of
@@ -190,50 +190,50 @@ bool buildSymmetricKey(byte *symmetricKey, unsigned int symKeyLength,
  * @return unsigned char array of HMAC or NULL if error. Caller responsible for
  * freeing buffer when done.
  */
-bool buildSymmetricKey(byte *passphrase, unsigned int phraseLength, const byte *messageData) {
+//bool buildSymmetricKey(byte *passphrase, unsigned int phraseLength, const byte *messageData) {
+//
+//	unsigned char hashOfPhrase[KEY_LENGTH_BYTES];
+//
+//	CryptoPP::SHA512 sha;
+//	sha.CalculateDigest(hashOfPhrase, passphrase, phraseLength);
+//
+//	if (sha.Verify(hashOfPhrase))
+//		return buildSymmetricKey(hashOfPhrase, sizeof(hashOfPhrase), messageData);
+//	else
+//		return false;
+//}
 
-	unsigned char hashOfPhrase[KEY_LENGTH_BYTES];
-
-	CryptoPP::SHA512 sha;
-	sha.CalculateDigest(hashOfPhrase, passphrase, phraseLength);
-
-	if (sha.Verify(hashOfPhrase))
-		return generateHmac(hashOfPhrase, sizeof(hashOfPhrase), messageData);
-	else
-		return false;
-}
-
-void SaveSymmetricKey(const std::string& filename, const CryptoPP::PrivateKey& key)
-{
-    CryptoPP::ByteQueue queue;
-    key.Save(queue);
-
-    CryptoPP::FileSink file(filename.c_str());
-    queue.CopyTo(file);
-    file.MessageEnd();
-}
-
-void LoadSymmetricKey(const char &filename, CryptoPP::BufferedTransformation& bt)
-{
-	CryptoPP::FileSource file(filename, true /*pumpAll*/);
-
-    file.TransferTo(bt);
-    bt.MessageEnd();
-}
-
-void LoadPublicKey(const std::string& filename, CryptoPP::PublicKey& key)
-{
-	CryptoPP::ByteQueue queue;
-    Load(filename, queue);
-
-    key.Load(queue);
-}
-void LoadPrivateKey(const std::string& filename, CryptoPP::PrivateKey& key)
-{
-	CryptoPP::ByteQueue queue;
-    Load(filename, queue);
-
-    key.Load(queue);
-}
+//void SaveSymmetricKey(const std::string& filename, const CryptoPP::PrivateKey& key)
+//{
+//    CryptoPP::ByteQueue queue;
+//    key.Save(queue);
+//
+//    CryptoPP::FileSink file(filename.c_str());
+//    queue.CopyTo(file);
+//    file.MessageEnd();
+//}
+//
+//void LoadSymmetricKey(const char &filename, CryptoPP::BufferedTransformation& bt)
+//{
+//	CryptoPP::FileSource file(filename, true /*pumpAll*/);
+//
+//    file.TransferTo(bt);
+//    bt.MessageEnd();
+//}
+//
+//void LoadPublicKey(const std::string& filename, CryptoPP::PublicKey& key)
+//{
+//	CryptoPP::ByteQueue queue;
+//    Load(filename, queue);
+//
+//    key.Load(queue);
+//}
+//void LoadPrivateKey(const std::string& filename, CryptoPP::PrivateKey& key)
+//{
+//	CryptoPP::ByteQueue queue;
+//    Load(filename, queue);
+//
+//    key.Load(queue);
+//}
 
 #endif /* COMMON_H_ */
