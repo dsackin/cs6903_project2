@@ -29,7 +29,7 @@
 #include "common.h"
 #include "prettyprint/prettyprint.hpp"
 
-
+using namespace CryptoPP;
 
 
 /**
@@ -126,9 +126,11 @@ int main(int argc, char **argv) {
 //	printf("%s\n", hexFK2);
 //
 
-	std::string s1 = CloudEncryptor<CryptoPP::SHA512>::GenerateObfuscatedName("something else.txt");
+	CloudEncryptor<SHA512> encryptor;
+	encryptor.LoadKey(boost::filesystem::path("/Users/doug/Documents/workspace/cloud/data/98DF-DD99-F93E-353A.key.cld"));
 
-	std::cout << s1 << std::endl;
-
+	cout << "done" << endl;
+//	cout << encryptor.GenerateKey("this is my secret phrase", "file.txt") << endl;
+//	bool wtf = encryptor.SaveKey(boost::filesystem::path("/Users/doug/Documents/workspace/cloud/data"));
 
 }
